@@ -19,7 +19,7 @@ ${host}=  https://tenders.all.biz
 Підготувати клієнт для користувача
   [Arguments]  ${username}
   Open Browser  ${USERS.users['${username}'].homepage}  ${USERS.users['${username}'].browser}  alias=${username}
-  Maximize Browser Window
+  Set Window Size  1024  768
   Run Keyword If  '${username}' != 'allbiz_Viewer'  Run Keywords
   ...  Login  ${username}
   ...  AND  Run Keyword And Ignore Error  Wait Until Keyword Succeeds  10 x  1 s  Закрити модалку з новинами
