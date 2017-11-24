@@ -231,11 +231,13 @@ Login
   Switch Browser  ${username}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
-  Choose File  xpath=//*[@data-test-id="tender.documents.upload"]/descendant::input[@name="FileUpload[file]"][last()]  ${filepath}
+  Scroll To Element  xpath=//*[@data-test-id="tender.documents.upload"]/descendant::input[@type="file"][last()]
+  Choose File  xpath=//*[@data-test-id="tender.documents.upload"]/descendant::input[@type="file"][last()]  ${filepath}
   ${last_doc_name}=  Get Element Attribute  xpath=(//input[contains(@name,"Tender[documents]")])[last()]@name
   ${doc_index}=  Set Variable  ${last_doc_name.split("][")[1]}
   Wait Until Element Is Visible  xpath=//input[@name="Tender[documents][${doc_index}][title]"]
   Input Text  xpath=//input[@name="Tender[documents][${doc_index}][title]"]  ${filepath.split("/")[-1]}
+  Select From List By Value  id=document-${doc_index}-relateditem  tender
   Click Button  xpath=//button[contains(@class,'btn_submit_form')]
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
   Дочекатися завантаження документу
@@ -291,12 +293,13 @@ Login
   [Arguments]  ${username}  ${filepath}  ${tender_uaid}  ${lot_id}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
-  Wait Until Page Contains Element  xpath=//div[@class="lots_marker"]/descendant::input[@name="FileUpload[file]"]
-  Choose File  xpath=//div[@class="lots_marker"]/descendant::input[@name="FileUpload[file]"]  ${filepath}
+  Wait Until Page Contains Element  xpath=//input[contains(@value,"${lot_id}")]/ancestor::div[@class="lots_marker"]/descendant::input[@type="file"][last()]
+  Choose File  xpath=//input[contains(@value,"${lot_id}")]/ancestor::div[@class="lots_marker"]/descendant::input[@type="file"][last()]  ${filepath}
   ${last_doc_name}=  Get Element Attribute  xpath=(//input[contains(@name,"Tender[documents]")])[last()]@name
   ${doc_index}=  Set Variable  ${last_doc_name.split("][")[1]}
   Wait Until Element Is Visible  xpath=//input[@name="Tender[documents][${doc_index}][title]"]
   Input Text  xpath=//input[@name="Tender[documents][${doc_index}][title]"]  ${filepath.split("/")[-1]}
+  Select From List By Index  id=document-${doc_index}-relateditem  1
   Click Button  xpath=//button[contains(@class,'btn_submit_form')]
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
   Дочекатися завантаження документу
@@ -655,7 +658,7 @@ Login
 Отримати інформацію із лоту
   [Arguments]  ${username}  ${tender_uaid}  ${lot_id}  ${field_name}
   ${red}=  Evaluate  "\\033[1;31m"
-  ${value}=  Run Keyword If  'minimalStep' in '${field_name}'  Get Text  xpath=//*[@data-test-id="lots.minimalStep.amount"]
+  ${value}=  Run Keyword If  'minimalStep' in '${field_name}' and 'TaxIncluded' not in '${field_name}'  Get Text  xpath=//*[@data-test-id="lots.minimalStep.amount"]
   ...  ELSE IF  'value' in '${field_name}'  Get Text  xpath=//*[contains(text(),"${lot_id}")]/ancestor::div[@class="item-inf_txt"]/descendant::*[@data-test-id='lots.value.amount']
   ...  ELSE  Get Text  xpath=//*[contains(text(),"${lot_id}")]/ancestor::div[@class="item-inf_txt"]/descendant::*[@data-test-id='lots.${field_name}']
   ${value}=  adapt_view_lot_data  ${value}  ${field_name}
@@ -844,7 +847,7 @@ Login
 Завантажити документ в ставку
   [Arguments]  ${username}  ${path}  ${tender_uaid}  ${doc_type}=documents
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  Choose File  xpath=(//*[@name="FileUpload[file]"])[last()]  ${path}
+  Choose File  xpath=(//input[@type="file"])[last()]  ${path}
   Run Keyword And Ignore Error  Wait Until Element Is Visible  xpath=(//select[contains(@name,"[relatedItem]")])[last()]
   ${doc_type_status}=  Run Keyword And Return Status  Element Should Be Visible  xpath=(//select[contains(@name,"[documentType]")])[last()]
   Run Keyword If  ${doc_type_status}  Wait And Select From List By Value  xpath=(//select[contains(@name,"[documentType]")])[last()]  technicalSpecifications

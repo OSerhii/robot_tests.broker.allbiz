@@ -98,11 +98,16 @@ def adapt_view_tender_data(value, field_name):
 def adapt_view_lot_data(value, field_name):
     if 'value.amount' in field_name:
         value = float("".join(value.split(' ')[:-4]))
+    elif 'minimalStep.currency' in field_name:
+        value = value.split(' ')[-1]
     elif 'currency' in field_name:
         value = value.split(' ')[-4]
     elif 'valueAddedTaxIncluded' in field_name:
         value = ' '.join(value.split(' ')[-3:]).strip()
+    elif 'minimalStep.amount' in field_name:
+        value = float("".join(value.split(' ')[:-1]))
     return convert_string_from_dict_allbiz(value)
+
 
 def adapt_view_item_data(value, field_name):
     if 'unit.name' in field_name:
