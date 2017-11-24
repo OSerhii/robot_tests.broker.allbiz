@@ -222,6 +222,7 @@ Login
 Додати опцію
   [Arguments]  ${enum}  ${index}  ${feature_index}
   ${enum_value}=   Convert To Integer   ${enum.value * 100}
+  Scroll To Element  name=Tender[features][${feature_index}][enum][${index}][title]
   Input Text   name=Tender[features][${feature_index}][enum][${index}][title]   ${enum.title}
   Run Keyword If   '${mode}' == 'openeu'  Input Text   name=Tender[features][${feature_index}][enum][${index}][title_en]   ${enum.title}
   Input Text   name=Tender[features][${feature_index}][enum][${index}][value]   ${enum_value}
@@ -251,7 +252,7 @@ Login
   [Arguments]  ${username}  ${tender_uaid}
   Switch browser  ${username}
   Go To  ${host}/tenders/
-  ${is_events_visible}=  Run Keyword And Return Status  Element Should Be Visible  id=buyer-read-all
+  ${is_events_visible}=  Run Keyword And Return Status  Element Should Be Visible  xpath=///button[contains(@id,"-read-all")]
   Run Keyword If  ${is_events_visible}  Click Element  id=buyer-read-all
   Wait Until Element Is Visible  name=TendersSearch[tender_cbd_id]  10
   Input text  name=TendersSearch[tender_cbd_id]  ${tender_uaid}
@@ -326,8 +327,7 @@ Login
   [Arguments]  ${username}  ${tender_uaid}  ${feature}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
-  Sleep  3
-  Дочекатися І Клікнути   xpath=(//div[@class="features_wrapper"]/descendant::button[contains(text(), "Додати показник")])[last()]
+  Дочекатися І Клікнути   xpath=(//div[contains(@class,"features_wrapper")]/descendant::button[contains(@class, "add_feature")])[last()]
   Додати показник   ${feature}  ${EMPTY}
   Дочекатися І Клікнути  xpath=//button[contains(@class,'btn_submit_form')]
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
@@ -336,7 +336,7 @@ Login
   [Arguments]  ${username}  ${tender_uaid}  ${feature}  ${lot_id}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
-  Дочекатися І Клікнути   xpath=(//input[contains(@value,"${lot_id}")]/ancestor::div[@class="lot"]/descendant::button[contains(text(), "Додати показник")])[last()]
+  Дочекатися І Клікнути   xpath=(//input[contains(@value,"${lot_id}")]/ancestor::div[@class="lot"]/descendant::button[contains(@class, "add_feature")])[last()]
   Додати показник   ${feature}  ${EMPTY}
   Дочекатися І Клікнути  xpath=//button[contains(@class,'btn_submit_form')]
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
@@ -345,7 +345,7 @@ Login
   [Arguments]  ${username}  ${tender_uaid}  ${feature}  ${item_id}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
-  Дочекатися І Клікнути   xpath=(//textarea[contains(text(),"${item_id}")]/ancestor::div[@class="lot"]/descendant::button[contains(text(), "Додати показник")])[last()]
+  Дочекатися І Клікнути   xpath=(//textarea[contains(text(),"${item_id}")]/ancestor::div[@class="lot"]/descendant::button[contains(@class, "add_feature")])[last()]
   Додати показник   ${feature}  ${EMPTY}  ${item_id}
   Дочекатися І Клікнути  xpath=//button[contains(@class,'btn_submit_form')]
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
@@ -651,7 +651,7 @@ Login
   ...  'unit.code' in '${field_name}'  Log To Console   ${red}\n\t\t\t Це поле не виводиться на allbiz
   ...  ELSE IF  'deliveryLocation' in '${field_name}'  Log To Console  ${red}\n\t\t\t Це поле не виводиться на allbiz
   ...  ELSE IF  'unit' in '${field_name}'  Get Text  xpath=//*[contains(text(), '${item_id}')]/ancestor::div[@class="item no_border"]/descendant::*[@data-test-id='items.quantity']
-  ...  ELSE  Get Text  xpath=//*[contains(text(), '${item_id}')]/ancestor::div[@class="items-block"]/descendant::*[@data-test-id='items.${field_name}']
+  ...  ELSE  Get Text  xpath=//*[contains(text(), '${item_id}')]/ancestor::div[@class="item-block"]/descendant::*[@data-test-id='items.${field_name}']
   ${value}=  adapt_view_item_data  ${value}  ${field_name}
   [Return]  ${value}
 
