@@ -73,6 +73,7 @@ Login
   Log  ${SUITE_NAME}
   Run Keyword If  "${SUITE_NAME}" == "Tests Files.Complaints"  Execute Javascript  $('input[name="accelerator"]').val('${custom_acceleration}')
   Get Element Attribute  xpath=//input[@name="accelerator"]@value
+  Capture Page Screenshot
   Дочекатися І Клікнути  xpath=//button[contains(@class,'btn_submit_form')]
   Wait Until Element Is Visible  xpath=//*[@data-test-id="tenderID"]  10
   ${tender_uaid}=  Get Text  xpath=//*[@data-test-id="tenderID"]
@@ -165,9 +166,9 @@ Login
   Wait And Select From List By Value  name=Tender[items][${index}][unit][code]  ${item.unit.code}
   Дочекатися І Клікнути  name=Tender[items][${index}][classification][description]
   Wait Until Element Is Visible  id=search
-  Input text  id=search  ${item.classification.description}
-  Wait Until Page Contains  ${item.classification.description}
-  Дочекатися І Клікнути  xpath=//span[contains(text(),'${item.classification.description}')]
+  Input text  id=search_code  ${item.classification.id}
+  Wait Until Page Contains  ${item.classification.id}
+  Дочекатися І Клікнути  xpath=//span[contains(text(),'${item.classification.id}')]
   Дочекатися І Клікнути  id=btn-ok
   Wait Until Keyword Succeeds  10 x  1 s  Element Should Not Be Visible  xpath=//div[@class="modal-backdrop fade"]
   Run Keyword If  ${dk_status}  Вибрати додатковий класифікатор  ${item}  ${index}
@@ -204,20 +205,36 @@ Login
 
 Додати показник
   [Arguments]   ${feature}  ${tender_data}  ${item_id}=${EMPTY}
-  ${feature_index}=  Execute Javascript  return FeatureCount
+#  ${feature_count}=  Execute Javascript  return FeatureCount
+#  ${is_edit_form}=  Run Keyword And Return Status  Page Should Contain  Редагування тендеру
+  ${feature_index}=  Get Last Feature Index
   ${enum_length}=  Get Length   ${feature.enum}
   ${relatedItem}=  Run Keyword If   "${feature.featureOf}" == "item"  get_related_elem_description   ${tender_data}   ${feature}   ${item_id}
   ...  ELSE IF  "${feature.featureOf}" == "lot"  Set Variable  Поточний лот
   ...  ELSE  Set Variable  Все оголошення
-  Input text   xpath=//input[@name="Tender[features][${feature_index - 1}][title]"]  ${feature.title}
-  Input text   name=Tender[features][${feature_index - 1}][description]   ${feature.description}
+  Input text   xpath=//input[@name="Tender[features][${feature_index}][title]"]  ${feature.title}
+  Input text   name=Tender[features][${feature_index}][description]   ${feature.description}
   Run Keyword If   '${mode}' == 'openeu'  Run Keywords
-  ...  Input text   xpath=//input[@name="Tender[features][${feature_index - 1}][title_en]"]  ${feature.title_en}
-  ...  AND  Input text   name=Tender[features][${feature_index - 1}][description_en]   ${feature.description}
-  Дочекатися І Клікнути  xpath=//select[@name="Tender[features][${feature_index - 1}][relatedItem]"]/descendant::option[contains(text(),"${relatedItem}")]
+  ...  Input text   xpath=//input[@name="Tender[features][${feature_index}][title_en]"]  ${feature.title_en}
+  ...  AND  Input text   name=Tender[features][${feature_index}][description_en]   ${feature.description}
+  Дочекатися І Клікнути  xpath=//select[@name="Tender[features][${feature_index}][relatedItem]"]/descendant::option[contains(text(),"${relatedItem}")]
   :FOR   ${index}   IN RANGE   ${enum_length}
-  \   Run Keyword if   ${index} != 0   Дочекатися І Клікнути   xpath=//input[@name="Tender[features][${feature_index - 1}][title]"]/ancestor::div[@class="feature"]/descendant::button[contains(@class,"add_feature_enum")]
-  \   Додати опцію   ${feature.enum[${index}]}   ${index}   ${feature_index - 1}
+  \   Run Keyword if   ${index} != 0   Дочекатися І Клікнути   xpath=//input[@name="Tender[features][${feature_index}][title]"]/ancestor::div[@class="feature"]/descendant::button[contains(@class,"add_feature_enum")]
+  \   Додати опцію   ${feature.enum[${index}]}   ${index}   ${feature_index}
+
+Index Should Not Be Zero
+  [Arguments]  ${feature_index}
+  ${element_id}=  Get Element Attribute  xpath=(//input[@class="feature_title" and not (contains(@name, "__EMPTY_FEATURE__"))])[${feature_index}]@id
+  Should Not Be Equal As Integers  ${element_id.split("-")[1]}  0
+
+Get Last Feature Index
+  ${features_length}=  Get Matching Xpath Count  (//input[@class="feature_title" and not (contains(@name, "__EMPTY_FEATURE__"))])
+  ${features_length}=  Convert To Integer  ${features_length}
+  :FOR  ${f_index}  IN RANGE  ${features_length}
+  \  ${element_id}=  Get Element Attribute  xpath=(//input[@class="feature_title" and not (contains(@name, "__EMPTY_FEATURE__"))])[${f_index + 1}]@id
+  \  ${feature_title_value}=  Get Element Attribute  xpath=(//input[@class="feature_title" and not (contains(@name, "__EMPTY_FEATURE__"))])[${f_index + 1}]@value
+  \  Run Keyword If  "${feature_title_value}" == "" and "${element_id.split("-")[1]}" == "0"  Wait Until Keyword Succeeds  10 x  400 ms  Index Should Not Be Zero  ${f_index + 1}
+  \  Return From Keyword If  "${feature_title_value}" == ""  ${element_id.split("-")[1]}
 
 Додати опцію
   [Arguments]  ${enum}  ${index}  ${feature_index}
@@ -345,10 +362,20 @@ Login
   [Arguments]  ${username}  ${tender_uaid}  ${feature}  ${item_id}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
+  ${is_feature_added}=  Run Keyword And Return Status  Should Contain At Least One Feature
+  Run Keyword If  ${is_feature_added}  Wait Until Keyword Succeeds  10 x  400 ms  Feature Count Should Not Be Zero
   Дочекатися І Клікнути   xpath=(//textarea[contains(text(),"${item_id}")]/ancestor::div[@class="lot"]/descendant::button[contains(@class, "add_feature")])[last()]
   Додати показник   ${feature}  ${EMPTY}  ${item_id}
   Дочекатися І Клікнути  xpath=//button[contains(@class,'btn_submit_form')]
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
+
+Should Contain At Least One Feature
+  ${feature_count}=  Get Matching Xpath Count  //input[@class="feature_title" and not (contains(@name, "__EMPTY_FEATURE__"))]
+  Should Not Be Equal As Integers  ${feature_count}  0
+
+Feature Count Should Not Be Zero
+  ${feature_count}=  Execute Javascript  return FeatureCount
+  Should Not Be Equal As Integers  ${feature_count}  0
 
 Створити постачальника, додати документацію і підтвердити його
   [Arguments]  ${username}  ${tender_uaid}  ${supplier_data}  ${document}
@@ -432,7 +459,7 @@ Login
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href, "/questions")]
   Input Text  name=Question[title]  ${question.data.title}
   Input Text  name=Question[description]  ${question.data.description}
-  ${label}=  Get Text  xpath=//select[@id="question-questionof"]/option[contains(text(), "${related_to}")]
+  ${label}=  Get Text  xpath=//select[@id="question-questionof"]/descendant::option[contains(text(), "${related_to}")]
   Run Keyword If  "${related_to}" != False  Wait And Select From List By Label  name=Question[questionOf]  ${label}
   Дочекатися І Клікнути  name=question_submit
   Wait Until Page Contains  ${question.data.description}
@@ -441,6 +468,8 @@ Login
   [Arguments]  ${username}  ${tender_uaid}  ${answer_data}  ${question_id}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href, "/questions")]
+  ${is_sidebar_visible}=  Run Keyword And Return Status  Element Should Be Visible  xpath=//div[contains(@class,"mk-slide-panel_body")]
+  Run Keyword If  ${is_sidebar_visible}  Click Element  id=slidePanelToggle
   Wait Until Element Is Visible  xpath=(//*[contains(text(), "${question_id}")])[last()]
   Input text  xpath=//*[contains(text(), "${question_id}")]/../descendant::textarea  ${answer_data.data.answer}
   Дочекатися І Клікнути  //*[contains(text(), "${question_id}")]/../descendant::button[@name="answer_question_submit"]
@@ -736,7 +765,8 @@ Login
 Отримати інформацію із пропозиції
   [Arguments]  ${username}  ${tender_uaid}  ${field}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  ${is_edited}=  Run Keyword And Return Status  Page Should Contain  Замовником внесено зміни в умови оголощення.
+  ${is_edited}=  Run Keyword And Return Status  Page Should Contain  Замовником внесено зміни в умови
+  Capture Page Screenshot
   ${value}=  Run Keyword If  ${is_edited} == ${True}  Set Variable  invalid
   ...  ELSE  Get Element Attribute  xpath=//input[contains(@name,"[value][amount]")]@value
   ${value}=  Run Keyword If  "value.amount" in "${field}"  Convert To Number  ${value}
@@ -838,7 +868,8 @@ Login
 Змінити цінову пропозицію
   [Arguments]  ${username}  ${tender_uaid}  ${fieldname}  ${fieldvalue}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  ${status}=  Run Keyword And Return Status  Page Should Not Contain  Замовником внесено зміни в умови оголощення.
+  Capture Page Screenshot
+  ${status}=  Run Keyword And Return Status  Page Should Not Contain  Замовником внесено зміни в умови
   Run Keyword If  ${status}  ConvToStr And Input Text  xpath=//input[contains(@name,'[value][amount]')]  ${fieldvalue}
   ...  ELSE  Подати Пропозицію Без Накладення ЕЦП
   Подати Пропозицію Без Накладення ЕЦП
