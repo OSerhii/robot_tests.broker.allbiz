@@ -127,19 +127,22 @@ Login
   [Arguments]  ${username}  ${tender_uaid}  ${lot}   ${data}=${EMPTY}
   ${lot}=  Set Variable If  '${tender_uaid}' != '${None}'  ${lot.data}  ${lot}
   ${amount}=  add_second_sign_after_point  ${lot.value.amount}
-  ${minimalStep}=  add_second_sign_after_point  ${lot.minimalStep.amount}
   ${lot_id}=  Get Element Attribute  xpath=(//input[contains(@name, "Tender[lots]") and contains(@name, "[value][amount]")])[last()]@id
   ${lot_index}=  Convert To Integer  ${lot_id.split("-")[1]}
-
   Input text   name=Tender[lots][${lot_index}][title]                 ${lot.title}
   Input text   name=Tender[lots][${lot_index}][description]           ${lot.description}
   Select From List By Value  xpath=(//*[@id="guarantee-exist"])[${lot_index + 3}]  0
   Input text   name=Tender[lots][${lot_index}][value][amount]         ${amount}
-  Input text   name=Tender[lots][${lot_index}][minimalStep][amount]   ${minimalStep}
+  Run Keyword If  "negotiation" not in "${SUITE_NAME}"  Input Minimal Step Amount  ${lot.minimalStep.amount}  ${lot_index}
   Run Keyword If   '${mode}' == 'openeu'   Run Keywords
   ...   Input Text   name=Tender[lots][${lot_index}][title_en]   ${lot.title_en}
   ...   AND   Input Text   name=Tender[lots][${lot_index}][description_en]    ${lot.description}
   Додати багато предметів   ${data}
+
+Input Minimal Step Amount
+  [Arguments]  ${minimal_step}  ${lot_index}
+  ${minimal_step_int}=  add_second_sign_after_point  ${minimal_step}
+  Input text  name=Tender[lots][${lot_index}][minimalStep][amount]  ${minimalStep}
 
 Додати багато предметів
   [Arguments]  ${data}
@@ -506,12 +509,12 @@ Feature Count Should Not Be Zero
   Input Text  name=Complaint[description]  ${claim.data.description}
   Wait And Select From List By Label  name=Complaint[relatedLot]  ${related_to}
   Run Keyword If  '${document}' != '${None}'  Run Keywords
-  ...  Choose File  name=FileUpload[file]  ${document}
+  ...  Choose File  xpath=//input[@type="file"]  ${document}
   ...  AND  Input Text  xpath=//input[contains(@name, "[title]") and contains(@name,"documents")]  ${document.split("/")[-1]}
   Дочекатися І Клікнути  name=complaint_submit
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
   Дочекатися завантаження документу
-  Wait Until Keyword Succeeds  10 x  30 s  Page Should Contain Element  xpath=//*[text()="${claim.data.title}"]/preceding-sibling::*[@data-test-id="complaint.complaintID"]
+  Wait Until Keyword Succeeds  10 x  30 s  Page Should Contain Element  xpath=//*[contains(text(),"${claim.data.title}")]/preceding-sibling::*[@data-test-id="complaint.complaintID"]
   ${complaintID}=   Get Text   xpath=(//*[@data-test-id="complaint.complaintID"])[1]
   [Return]  ${complaintID}
 
@@ -602,7 +605,7 @@ Feature Count Should Not Be Zero
   Input Text  name=Complaint[title]  ${claim.data.title}
   Input Text  name=Complaint[description]  ${claim.data.description}
   Run Keyword If  '${document}' != '${None}'  Run Keywords
-  ...  Choose File  name=FileUpload[file]  ${document}
+  ...  Choose File  xpath=//input[@type="file"]  ${document}
   ...  AND  Input Text  xpath=//input[contains(@name, "[title]") and contains(@name,"documents")]  ${document.split("/")[-1]}
   Дочекатися І Клікнути  name=complaint_submit
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
@@ -740,8 +743,8 @@ Feature Count Should Not Be Zero
   Wait Until Page Does Not Contain Element  xpath=//*[@data-test-id="items.description"]
   Wait Until Keyword Succeeds  5 x  60s  Run Keywords
   ...  Reload Page
-  ...  AND  Page Should Contain Element  xpath=//*[contains(text(), "${complaintID}")]/ancestor::div[contains(@class, "questions margin_b")]/descendant::*[@data-test-id="complaint.${field_name}"]
-  ${value}=  Get Text  xpath=//*[contains(text(), "${complaintID}")]/ancestor::div[contains(@class, "questions margin_b")]/descendant::*[@data-test-id="complaint.${field_name}"]
+  ...  AND  Page Should Contain Element  xpath=//*[contains(text(), "${complaintID}")]/ancestor::div[contains(@class, "mk-question")]/descendant::*[@data-test-id="complaint.${field_name}"]
+  ${value}=  Get Text  xpath=//*[contains(text(), "${complaintID}")]/ancestor::div[contains(@class, "mk-question")]/descendant::*[@data-test-id="complaint.${field_name}"]
   ${value}=  convert_string_from_dict_allbiz   ${value}
   [Return]  ${value}
 
@@ -1014,7 +1017,7 @@ Feature Count Should Not Be Zero
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
   Capture Page Screenshot
   ${current_url}=  Get Location
-  Execute Javascript  window['url'] = null; $.get( "${host}/seller/tender/updatebid", { id: "${current_url.split("/")[-1]}"}, function(data){ window['url'] = data.data.participationUrl },'json');
+  Execute Javascript  window['url'] = null; $.get( "${host}/seller/tender/updatebid", { id: "${current_url.split("/")[-1]}"}, function(data){ window['url'] = data.data.lotValues[0].participationUrl },'json');
   Wait Until Keyword Succeeds  20 x  1 s  JQuery Ajax Should Complete
   ${auction_url}=  Execute Javascript  return window['url'];
   [Return]  ${auction_url}

@@ -60,6 +60,12 @@ def convert_string_from_dict_allbiz(string):
 def adapt_procuringEntity(role_name, tender_data):
     if role_name == 'tender_owner':
         tender_data['data']['procuringEntity']['name'] = u"ТОВ Величний Свинарник"
+        tender_data['data']['procuringEntity']['address']['postalCode'] = u"01100"
+        tender_data['data']['procuringEntity']['address']['region'] = u"місто Київ"
+        tender_data['data']['procuringEntity']['address']['locality'] = u"Київ"
+        tender_data['data']['procuringEntity']['address']['streetAddress'] = u"вул. Рогатої Худоби"
+        tender_data['data']['procuringEntity']['identifier']['legalName'] = u"ТОВ Величний Свинарник"
+        tender_data['data']['procuringEntity']['identifier']['id'] = u"12345677"
         if tender_data['data'].has_key('procurementMethodType'):
             if "above" in tender_data['data']['procurementMethodType']:
                 tender_data['data']['tenderPeriod']['startDate'] = subtract_min_from_date(
