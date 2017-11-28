@@ -251,7 +251,7 @@ Get Last Feature Index
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
   Scroll To Element  xpath=//*[@data-test-id="tender.documents.upload"]/descendant::input[@type="file"][last()]
   Choose File  xpath=//*[@data-test-id="tender.documents.upload"]/descendant::input[@type="file"][last()]  ${filepath}
-  ${last_doc_name}=  Get Element Attribute  xpath=(//input[contains(@name,"Tender[documents]")])[last()]@name
+  ${last_doc_name}=  Get Element Attribute  xpath=(//input[contains(@name,"Tender[documents]") and not (contains(@name, "__empty_doc__"))])[last()]@name
   ${doc_index}=  Set Variable  ${last_doc_name.split("][")[1]}
   Wait Until Element Is Visible  xpath=//input[@name="Tender[documents][${doc_index}][title]"]
   Input Text  xpath=//input[@name="Tender[documents][${doc_index}][title]"]  ${filepath.split("/")[-1]}
@@ -313,7 +313,7 @@ Get Last Feature Index
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
   Wait Until Page Contains Element  xpath=//input[contains(@value,"${lot_id}")]/ancestor::div[@class="lots_marker"]/descendant::input[@type="file"][last()]
   Choose File  xpath=//input[contains(@value,"${lot_id}")]/ancestor::div[@class="lots_marker"]/descendant::input[@type="file"][last()]  ${filepath}
-  ${last_doc_name}=  Get Element Attribute  xpath=(//input[contains(@name,"Tender[documents]")])[last()]@name
+  ${last_doc_name}=  Get Element Attribute  xpath=(//input[contains(@name,"Tender[documents]") and not (contains(@name, "__empty_doc__"))])[last()]@name
   ${doc_index}=  Set Variable  ${last_doc_name.split("][")[1]}
   Wait Until Element Is Visible  xpath=//input[@name="Tender[documents][${doc_index}][title]"]
   Input Text  xpath=//input[@name="Tender[documents][${doc_index}][title]"]  ${filepath.split("/")[-1]}
@@ -1012,6 +1012,7 @@ Feature Count Should Not Be Zero
 Отримати посилання на аукціон для учасника
   [Arguments]  ${username}  ${tender_uaid}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
+  Capture Page Screenshot
   ${current_url}=  Get Location
   Execute Javascript  window['url'] = null; $.get( "${host}/seller/tender/updatebid", { id: "${current_url.split("/")[-1]}"}, function(data){ window['url'] = data.data.participationUrl },'json');
   Wait Until Keyword Succeeds  20 x  1 s  JQuery Ajax Should Complete
