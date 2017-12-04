@@ -46,6 +46,7 @@ def convert_string_from_dict_allbiz(string):
         u'вимога': u'claim',
         u'дано відповідь': u'answered',
         u'вирішено': u'resolved',
+        u'відхилено': u'declined',
         u'Так': True,
         u'Ні': False,
         u'на розглядi': u'pending',

@@ -6,7 +6,7 @@ Library  DateTime
 Library  allbiz_service.py
 
 *** Variables ***
-${custom_acceleration}=  180
+${custom_acceleration}=  720
 ${host}=  https://tenders.all.biz
 
 *** Keywords ***
@@ -272,7 +272,7 @@ Get Last Feature Index
   [Arguments]  ${username}  ${tender_uaid}
   Switch browser  ${username}
   Go To  ${host}/tenders/
-  ${is_events_visible}=  Run Keyword And Return Status  Element Should Be Visible  xpath=///button[contains(@id,"-read-all")]
+  ${is_events_visible}=  Run Keyword And Return Status  Element Should Be Visible  xpath=//button[contains(@id,"-read-all")]
   Run Keyword If  ${is_events_visible}  Click Element  id=buyer-read-all
   Wait Until Element Is Visible  name=TendersSearch[tender_cbd_id]  10
   Input text  name=TendersSearch[tender_cbd_id]  ${tender_uaid}
@@ -471,8 +471,7 @@ Feature Count Should Not Be Zero
   [Arguments]  ${username}  ${tender_uaid}  ${answer_data}  ${question_id}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href, "/questions")]
-  ${is_sidebar_visible}=  Run Keyword And Return Status  Element Should Be Visible  xpath=//div[contains(@class,"mk-slide-panel_body")]
-  Run Keyword If  ${is_sidebar_visible}  Click Element  id=slidePanelToggle
+  Toggle Sidebar
   Wait Until Element Is Visible  xpath=(//*[contains(text(), "${question_id}")])[last()]
   Input text  xpath=//*[contains(text(), "${question_id}")]/../descendant::textarea  ${answer_data.data.answer}
   Дочекатися І Клікнути  //*[contains(text(), "${question_id}")]/../descendant::button[@name="answer_question_submit"]
@@ -503,7 +502,10 @@ Feature Count Should Not Be Zero
   [Arguments]  ${username}  ${tender_uaid}  ${claim}  ${document}=${None}  ${related_to}=Тендеру
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href, "/complaints")]
-  Дочекатися І Клікнути  xpath=//a[contains(@href, "status=claim")]
+  Toggle Sidebar
+  Wait Until Keyword Succeeds  10 x  400 ms  Run Keywords
+  ...  Дочекатися І Клікнути  xpath=//a[contains(@href, "status=claim")]
+  ...  AND  Wait Until Element Is Visible  xpath=//select[@name="Complaint[relatedLot]"]/option[contains(text(), "${related_to}")]
   ${related_to}=  Get Text  xpath=//select[@name="Complaint[relatedLot]"]/option[contains(text(), "${related_to}")]
   Input Text  name=Complaint[title]  ${claim.data.title}
   Input Text  name=Complaint[description]  ${claim.data.description}
@@ -522,8 +524,12 @@ Feature Count Should Not Be Zero
   [Arguments]  ${username}  ${tender_uaid}  ${complaintID}  ${confirmation_data}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href, "/complaints")]
-  Дочекатися І Клікнути  xpath=//button[@name="complaint_resolved"]
-  Wait Until Keyword Succeeds  30 x  1 s  Page Should Contain Element  xpath=//*[@data-test-id="complaint.satisfied"]
+  Run Keyword If  ${confirmation_data.data.satisfied}  Run Keywords
+  ...  Дочекатися І Клікнути  xpath=//button[@name="complaint_resolved"]
+  ...  AND  Wait Until Keyword Succeeds  30 x  1 s  Page Should Contain Element  xpath=//*[@data-test-id="complaint.satisfied"]
+  ...  ELSE  Дочекатися І Клікнути  xpath=//button[@name="claim_satisfied_false"]
+  ...  AND  Wait Until Keyword Succeeds  30 x  1 s  Page Should Contain Element  xpath=//*[@data-test-id="complaint.satisfied"]
+  #Wait Until Keyword Succeeds  30 x  1 s  Page Should Contain Element  xpath=//*[@data-test-id="complaint.satisfied"]
 
 Створити вимогу про виправлення умов лоту
   [Arguments]  ${username}  ${tender_uaid}  ${claim}  ${lot_id}  ${document}=${None}
@@ -600,6 +606,7 @@ Feature Count Should Not Be Zero
   [Arguments]  ${username}  ${tender_uaid}  ${claim}  ${award_index}  ${document}=${None}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
+  Toggle Sidebar
   Дочекатися І Клікнути  xpath=//a[contains(@href,"tender/qualification")]
   Дочекатися І Клікнути  xpath=//a[contains(@href, "status=claim")]
   Input Text  name=Complaint[title]  ${claim.data.title}
@@ -741,10 +748,11 @@ Feature Count Should Not Be Zero
   ...    AND  Дочекатися І Клікнути  xpath=//*[@class="bidclaims"]/descendant::a[contains(@href,"tender/qualification-complaints")]
   ...  ELSE  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/complaints")]
   Wait Until Page Does Not Contain Element  xpath=//*[@data-test-id="items.description"]
-  Wait Until Keyword Succeeds  5 x  60s  Run Keywords
+  Wait Until Keyword Succeeds  10 x  60s  Run Keywords
   ...  Reload Page
-  ...  AND  Page Should Contain Element  xpath=//*[contains(text(), "${complaintID}")]/ancestor::div[contains(@class, "mk-question")]/descendant::*[@data-test-id="complaint.${field_name}"]
-  ${value}=  Get Text  xpath=//*[contains(text(), "${complaintID}")]/ancestor::div[contains(@class, "mk-question")]/descendant::*[@data-test-id="complaint.${field_name}"]
+  ...  AND  Page Should Contain Element  xpath=//*[contains(text(), "${complaintID}")]/ancestor::div[@class="mk-question"]/descendant::*[@data-test-id="complaint.${field_name}"]
+  Capture Page Screenshot
+  ${value}=  Get Text  xpath=//*[contains(text(), "${complaintID}")]/ancestor::div[@class="mk-question"]/descendant::*[@data-test-id="complaint.${field_name}"]
   ${value}=  convert_string_from_dict_allbiz   ${value}
   [Return]  ${value}
 
@@ -1099,3 +1107,21 @@ Scroll To Element
   ...  AND  Wait Until Page Contains  Горобець  10
   Дочекатися І Клікнути  id=SignDataButton
   Wait Until Keyword Succeeds  60 x  1 s  Page Should Not Contain Element  id=SignDataButton  120
+
+Toggle Sidebar
+  ${is_sidebar_visible}=  Run Keyword And Return Status  Element Should Be Visible  xpath=//div[contains(@class,"mk-slide-panel_body")]
+  Run Keyword If  ${is_sidebar_visible}  Run Keywords
+  ...  Wait Element Animation  xpath=//div[@class="title"]
+  ...  AND  Click Element  id=slidePanelToggle
+
+Wait Element Animation
+  [Arguments]  ${locator}
+  Set Test Variable  ${prev_vert_pos}  0
+  Wait Until Keyword Succeeds  20 x  500 ms  Position Should Equals  ${locator}
+
+Position Should Equals
+  [Arguments]  ${locator}
+  ${current_vert_pos}=  Get Vertical Position  ${locator}
+  ${status}=  Run Keyword And Return Status  Should Be Equal  ${prev_vert_pos}  ${current_vert_pos}
+  Set Test Variable  ${prev_vert_pos}  ${current_vert_pos}
+  Should Be True  ${status}
