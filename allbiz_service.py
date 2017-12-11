@@ -36,7 +36,6 @@ def convert_string_from_dict_allbiz(string):
         u'Код ДК (ДК003)': u'ДК003',
         u'Код ДК (ДК018)': u'ДК018',
         u'з урахуванням ПДВ': True,
-        #u'з ПДВ': True,
         u'без урахуванням ПДВ': False,
         u'Очiкування пропозицiй': u'active.tendering',
         u'Перiод уточнень': u'active.enquiries',
@@ -47,6 +46,8 @@ def convert_string_from_dict_allbiz(string):
         u'дано відповідь': u'answered',
         u'вирішено': u'resolved',
         u'відхилено': u'declined',
+        u'недійсно': u'invalid',
+        u'award_ignored': u'ignored',
         u'Так': True,
         u'Ні': False,
         u'на розглядi': u'pending',
@@ -61,9 +62,9 @@ def convert_string_from_dict_allbiz(string):
 def adapt_procuringEntity(role_name, tender_data):
     if role_name == 'tender_owner':
         tender_data['data']['procuringEntity']['name'] = u"ТОВ Величний Свинарник"
-        tender_data['data']['procuringEntity']['address']['postalCode'] = u"01100"
-        tender_data['data']['procuringEntity']['address']['region'] = u"місто Київ"
-        tender_data['data']['procuringEntity']['address']['locality'] = u"Київ"
+        tender_data['data']['procuringEntity']['address']['postalCode'] = u"01010"
+        tender_data['data']['procuringEntity']['address']['region'] = u"Вінницька область"
+        tender_data['data']['procuringEntity']['address']['locality'] = u"Яйківка"
         tender_data['data']['procuringEntity']['address']['streetAddress'] = u"вул. Рогатої Худоби"
         tender_data['data']['procuringEntity']['identifier']['legalName'] = u"ТОВ Величний Свинарник"
         tender_data['data']['procuringEntity']['identifier']['id'] = u"12345677"
@@ -85,8 +86,8 @@ def adapt_delivery_data(tender_data):
 def adapt_view_tender_data(value, field_name):
     if 'value.amount' in field_name:
         value = float(value.replace(" ", ""))
-    # elif 'currency' in field_name:
-    #     value = value.split(' ')[1]
+    elif 'currency' in field_name and 'awards' in field_name:
+        value = value.split(' ')[-1]
     # elif 'valueAddedTaxIncluded' in field_name:
     #     value = ' '.join(value.split(' ')[2:])
     elif 'minimalStep.amount' in field_name:
@@ -147,7 +148,7 @@ def add_second_sign_after_point(amount):
 
 
 def get_bid_phone(internal_id, bid_index):
-    r = urllib.urlopen('https://lb.api-sandbox.openprocurement.org/api/2.3/tenders/{}'.format(internal_id)).read()
+    r = urllib.urlopen('https://api-sandbox.prozorro.openprocurement.net/api/dev/tenders/{}'.format(internal_id)).read()
     tender = json.loads(r)
     bid_id = tender['data']['qualifications'][int(bid_index)]["bidID"]
     for bid in tender['data']['bids']:

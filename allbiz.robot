@@ -6,7 +6,7 @@ Library  DateTime
 Library  allbiz_service.py
 
 *** Variables ***
-${custom_acceleration}=  720
+${custom_acceleration}=  360
 ${host}=  https://tenders.all.biz
 
 *** Keywords ***
@@ -129,11 +129,12 @@ Login
   ${amount}=  add_second_sign_after_point  ${lot.value.amount}
   ${lot_id}=  Get Element Attribute  xpath=(//input[contains(@name, "Tender[lots]") and contains(@name, "[value][amount]")])[last()]@id
   ${lot_index}=  Convert To Integer  ${lot_id.split("-")[1]}
+  ${is_guarantee}=  Run Keyword And Return Status  Element Should Be Visible  xpath=(//*[@id="guarantee-exist"])[${lot_index + 3}]
   Input text   name=Tender[lots][${lot_index}][title]                 ${lot.title}
   Input text   name=Tender[lots][${lot_index}][description]           ${lot.description}
-  Select From List By Value  xpath=(//*[@id="guarantee-exist"])[${lot_index + 3}]  0
+  Run keyword If  ${is_guarantee}  Select From List By Value  xpath=(//*[@id="guarantee-exist"])[${lot_index + 3}]  0
   Input text   name=Tender[lots][${lot_index}][value][amount]         ${amount}
-  Run Keyword If  "negotiation" not in "${SUITE_NAME}"  Input Minimal Step Amount  ${lot.minimalStep.amount}  ${lot_index}
+  Run Keyword If  "Negotiation" not in "${SUITE_NAME}"  Input Minimal Step Amount  ${lot.minimalStep.amount}  ${lot_index}
   Run Keyword If   '${mode}' == 'openeu'   Run Keywords
   ...   Input Text   name=Tender[lots][${lot_index}][title_en]   ${lot.title_en}
   ...   AND   Input Text   name=Tender[lots][${lot_index}][description_en]    ${lot.description}
@@ -167,6 +168,7 @@ Input Minimal Step Amount
   Run Keyword If   '${mode}' == 'openeu'   Input text  name=Tender[items][${index}][description_en]  ${item.description_en}
   Input text  name=Tender[items][${index}][quantity]  ${item.quantity}
   Wait And Select From List By Value  name=Tender[items][${index}][unit][code]  ${item.unit.code}
+  Scroll To Element  name=Tender[items][${index}][classification][description]
   Дочекатися І Клікнути  name=Tender[items][${index}][classification][description]
   Wait Until Element Is Visible  id=search
   Input text  id=search_code  ${item.classification.id}
@@ -175,7 +177,6 @@ Input Minimal Step Amount
   Дочекатися І Клікнути  id=btn-ok
   Wait Until Keyword Succeeds  10 x  1 s  Element Should Not Be Visible  xpath=//div[@class="modal-backdrop fade"]
   Run Keyword If  ${dk_status}  Вибрати додатковий класифікатор  ${item}  ${index}
-  #...  ELSE  Wait And Select From List By Value  name=Tender[items][${index}][additionalClassifications][0][dkType]  000
   Wait Until Element Is Visible  name=Tender[items][${index}][deliveryAddress][countryName]
   Wait And Select From List By Label  name=Tender[items][${index}][deliveryAddress][countryName]  ${item.deliveryAddress.countryName}
   Wait And Select From List By Label  name=Tender[items][${index}][deliveryAddress][region]  ${item.deliveryAddress.region}
@@ -189,9 +190,9 @@ Input Minimal Step Amount
   [Arguments]  ${item}  ${index}
   Wait And Select From List By Value  name=Tender[items][${index}][additionalClassifications][0][dkType]  ${item.additionalClassifications[0].scheme}_dk${item.additionalClassifications[0].scheme[2:]}
   Дочекатися І Клікнути  name=Tender[items][${index}][additionalClassifications][0][description]
-  Input text  id=search  ${item.additionalClassifications[0].description}
-  Wait Until Page Contains  ${item.additionalClassifications[0].description}
-  Дочекатися І Клікнути  xpath=//div[@id="${item.additionalClassifications[0].id}"]/div/span[contains(text(), '${item.additionalClassifications[0].description}')]
+  Input text  id=search_code  ${item.additionalClassifications[0].id}
+  Wait Until Page Contains  ${item.additionalClassifications[0].id}
+  Дочекатися І Клікнути  xpath=//div[@id="${item.additionalClassifications[0].id}"]/div/span[contains(text(), '${item.additionalClassifications[0].id}')]
   Дочекатися І Клікнути  id=btn-ok
 
 Додати нецінові критерії
@@ -208,8 +209,6 @@ Input Minimal Step Amount
 
 Додати показник
   [Arguments]   ${feature}  ${tender_data}  ${item_id}=${EMPTY}
-#  ${feature_count}=  Execute Javascript  return FeatureCount
-#  ${is_edit_form}=  Run Keyword And Return Status  Page Should Contain  Редагування тендеру
   ${feature_index}=  Get Last Feature Index
   ${enum_length}=  Get Length   ${feature.enum}
   ${relatedItem}=  Run Keyword If   "${feature.featureOf}" == "item"  get_related_elem_description   ${tender_data}   ${feature}   ${item_id}
@@ -236,7 +235,7 @@ Get Last Feature Index
   :FOR  ${f_index}  IN RANGE  ${features_length}
   \  ${element_id}=  Get Element Attribute  xpath=(//input[@class="feature_title" and not (contains(@name, "__EMPTY_FEATURE__"))])[${f_index + 1}]@id
   \  ${feature_title_value}=  Get Element Attribute  xpath=(//input[@class="feature_title" and not (contains(@name, "__EMPTY_FEATURE__"))])[${f_index + 1}]@value
-  \  Run Keyword If  "${feature_title_value}" == "" and "${element_id.split("-")[1]}" == "0"  Wait Until Keyword Succeeds  10 x  400 ms  Index Should Not Be Zero  ${f_index + 1}
+  \  Run Keyword If  "${feature_title_value}" == "" and "${element_id.split("-")[1]}" == "0"  Wait Until Keyword Succeeds  10 x  2 s  Index Should Not Be Zero  ${f_index + 1}
   \  Return From Keyword If  "${feature_title_value}" == ""  ${element_id.split("-")[1]}
 
 Додати опцію
@@ -282,12 +281,6 @@ Get Last Feature Index
   ...  AND  Wait Until Element Is Visible  xpath=//*[contains(text(),'${tender_uaid}')]/ancestor::div[@class="search-result"]/descendant::a[1]  10
   Click Element  xpath=//*[contains(text(),'${tender_uaid}')]/ancestor::div[@class="search-result"]/descendant::a[1]
   Wait Until Element Is Visible  xpath=//*[@data-test-id="tenderID"]  10
-
-#Перейти на сторінку з інформацією про тендер
-#  [Arguments]  ${tender_uaid}
-#  Wait Until Element Is Not Visible  xpath=//ul[@class="pagination"]
-#  Дочекатися І Клікнути  xpath=//*[contains(text(),'${tender_uaid}')]/ancestor::div[@class="search-result"]/descendant::a[1]
-#  Wait Until Element Is Visible  xpath=//*[@data-test-id="tenderID"]
 
 Оновити сторінку з тендером
   [Arguments]  ${username}  ${tenderID}
@@ -356,6 +349,7 @@ Get Last Feature Index
   [Arguments]  ${username}  ${tender_uaid}  ${feature}  ${lot_id}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
+  Sleep  3
   Дочекатися І Клікнути   xpath=(//input[contains(@value,"${lot_id}")]/ancestor::div[@class="lot"]/descendant::button[contains(@class, "add_feature")])[last()]
   Додати показник   ${feature}  ${EMPTY}
   Дочекатися І Клікнути  xpath=//button[contains(@class,'btn_submit_form')]
@@ -399,12 +393,10 @@ Feature Count Should Not Be Zero
   Дочекатися І Клікнути  name=add_limited_avards
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
-  Choose File  xpath=(//input[@name="FileUpload[file]"])[1]  ${document}
+  Дочекатися І Клікнути  xpath=//button[contains(@id,"modal-award-qualification")]
+  Choose File  xpath=//*[@class="active"]/descendant::input[@type="file"]  ${document}
   Дочекатися І Клікнути  xpath=(//input[contains(@id,"qualified")])[1]/..
   Дочекатися І Клікнути  name=send_prequalification
-  Wait Until Keyword Succeeds  10 x  1 s  Run Keywords
-  ...  Click Element  xpath=(//*[@data-dismiss="modal"])[last()]
-  ...  AND  Wait Until Page Does Not Contain  Зверніть увагу  10
   Накласти ЄЦП
 
 
@@ -431,16 +423,6 @@ Feature Count Should Not Be Zero
   Confirm Action
   Дочекатися І Клікнути  xpath=//button[contains(@class,'btn_submit_form')]
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
-
-#Видалити лот
-#  [Arguments]  ${username}  ${tender_uaid}  ${lot_id}
-#  allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
-#  Дочекатися І Клікнути  xpath=//a[contains(@href,"tender/cancel")]
-#  ${elem_value}=  Get Element Attribute  xpath=//option[contains(text(),"${lot_id}")]@value
-#  Wait And Select From List By Value  name=Tender[cancellations][relatedLot]  ${elem_value}
-#  Input Text  name=Tender[cancellations][reason]  test
-#  Дочекатися І Клікнути  xpath=//button[@type="submit"]
-#  Wait Until Page Contains  Лот закупiвлi скасованно
 
 Видалити неціновий показник
   [Arguments]  ${username}  ${tender_uaid}  ${feature_id}
@@ -516,7 +498,9 @@ Feature Count Should Not Be Zero
   Дочекатися І Клікнути  name=complaint_submit
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
   Дочекатися завантаження документу
-  Wait Until Keyword Succeeds  10 x  30 s  Page Should Contain Element  xpath=//*[contains(text(),"${claim.data.title}")]/preceding-sibling::*[@data-test-id="complaint.complaintID"]
+  Wait Until Keyword Succeeds  10 x  30 s  Run Keywords
+  ...  Reload Page
+  ...  AND  Page Should Contain Element  xpath=//*[contains(text(),"${claim.data.title}")]/ancestor::*[@class="mk-question"]/descendant::*[@data-test-id="complaint.status" and contains(text(),"вимога")]
   ${complaintID}=   Get Text   xpath=(//*[@data-test-id="complaint.complaintID"])[1]
   [Return]  ${complaintID}
 
@@ -524,12 +508,9 @@ Feature Count Should Not Be Zero
   [Arguments]  ${username}  ${tender_uaid}  ${complaintID}  ${confirmation_data}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href, "/complaints")]
-  Run Keyword If  ${confirmation_data.data.satisfied}  Run Keywords
-  ...  Дочекатися І Клікнути  xpath=//button[@name="complaint_resolved"]
-  ...  AND  Wait Until Keyword Succeeds  30 x  1 s  Page Should Contain Element  xpath=//*[@data-test-id="complaint.satisfied"]
+  Run Keyword If  ${confirmation_data.data.satisfied}  Дочекатися І Клікнути  xpath=//button[@name="complaint_resolved"]
   ...  ELSE  Дочекатися І Клікнути  xpath=//button[@name="claim_satisfied_false"]
-  ...  AND  Wait Until Keyword Succeeds  30 x  1 s  Page Should Contain Element  xpath=//*[@data-test-id="complaint.satisfied"]
-  #Wait Until Keyword Succeeds  30 x  1 s  Page Should Contain Element  xpath=//*[@data-test-id="complaint.satisfied"]
+  Wait Until Keyword Succeeds  30 x  1 s  Page Should Contain Element  xpath=//*[@data-test-id="complaint.satisfied"]
 
 Створити вимогу про виправлення умов лоту
   [Arguments]  ${username}  ${tender_uaid}  ${claim}  ${lot_id}  ${document}=${None}
@@ -545,7 +526,7 @@ Feature Count Should Not Be Zero
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Run Keyword If  "переможця" in "${TEST_NAME}"  Run Keywords
   ...    Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
-  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="bidclaims"]/descendant::a[contains(@href,"tender/qualification-complaints")]
+  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="page-panel"]/descendant::a[contains(@href,"tender/qualification-complaints")]
   ...  ELSE  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/complaints")]
   Wait Until Page Does Not Contain  Специфікація закупівлі
   Wait Until Keyword Succeeds  10 x  60 s  Run Keywords
@@ -592,7 +573,7 @@ Feature Count Should Not Be Zero
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Run Keyword If  "переможця" in "${TEST_NAME}"  Run Keywords
   ...    Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
-  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="bidclaims"]/descendant::a[contains(@href,"tender/qualification-complaints")]
+  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="page-panel"]/descendant::a[contains(@href,"tender/qualification-complaints")]
   ...  ELSE  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/complaints")]
   Wait Until Page Does Not Contain  Специфікація закупівлі
   Дочекатися І Клікнути  xpath=//*[contains(text(),"${complaintID}")]/../descendant::button[@name="complaint_convert_to_claim"]
@@ -617,7 +598,7 @@ Feature Count Should Not Be Zero
   Дочекатися І Клікнути  name=complaint_submit
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
   Дочекатися завантаження документу
-  Wait Until Keyword Succeeds  10 x  30 s  Page Should Contain Element  xpath=//*[text()="${claim.data.title}"]/preceding-sibling::*[@data-test-id="complaint.complaintID"]
+  Wait Until Keyword Succeeds  10 x  30 s  Page Should Contain Element  xpath=//*[contains(text(),"${claim.data.title}")]/preceding-sibling::*[@data-test-id="complaint.complaintID"]
   ${complaintID}=   Get Text   xpath=(//*[@data-test-id="complaint.complaintID"])[last()]
   [Return]  ${complaintID}
 
@@ -648,7 +629,7 @@ Feature Count Should Not Be Zero
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Run Keyword If  "переможця" in "${TEST_NAME}"  Run Keywords
   ...    Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
-  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="bidclaims"]/descendant::a[contains(@href,"tender/qualification-complaints")]
+  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="page-panel"]/descendant::a[contains(@href,"tender/qualification-complaints")]
   ...  ELSE  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/complaints")]
   Wait Until Page Does Not Contain  Специфікація закупівлі
   Дочекатися І Клікнути  xpath=//*[contains(text(),"${complaintID}")]/../descendant::button[@name="award_claim_convert_to_pending"]
@@ -662,7 +643,6 @@ Feature Count Should Not Be Zero
   [Arguments]  ${username}  ${tender_uaid}  ${field_name}
   ${red}=  Evaluate  "\\033[1;31m"
   Run Keyword If  'title' in '${field_name}'  Execute Javascript  $("[data-test-id|='title']").css("text-transform", "unset")
-  #${status_item_block}=  Run Keyword And Return Status  Element Should Not Be Visible  xpath=//*[@data-test-id="items.description"]
   Run Keyword If  '${field_name}' == 'status'  Reload Page
   Run Keyword If  '${field_name}' == 'qualificationPeriod.endDate'  Wait Until Keyword Succeeds  10 x  60 s  Run Keywords
   ...  allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
@@ -674,7 +654,6 @@ Feature Count Should Not Be Zero
   ...  ELSE IF  'deliveryLocation' in '${field_name}'  Log To Console  ${red}\n\t\t\t Це поле не виводиться на allbiz
   ...  ELSE IF  'items' in '${field_name}'  Get Text  xpath=//*[@data-test-id="${field_name.replace('[0]', '')}"]
   ...  ELSE IF  '${field_name}' == 'cause'  Get Element Attribute  xpath=//*[@data-test-id="${field_name}"]@data-test-cause
-  #...  ELSE IF  'value' in '${field_name}'  Get Text  xpath=//*[@data-test-id="value.amount"]
   ...  ELSE IF  '${field_name}' == 'procuringEntity.identifier.legalName'  Get Text  xpath=//*[@data-test-id="procuringEntity.name"]
   ...  ELSE IF  '${field_name}' == 'documents[0].title'  Get Text  xpath=//a[contains(@href,"docs-sandbox")]
   ...  ELSE IF  '${field_name}' == 'contracts[0].status'  Отримати статус контракта  ${username}  ${tender_uaid}
@@ -742,10 +721,14 @@ Feature Count Should Not Be Zero
 
 Отримати інформацію із скарги
   [Arguments]  ${username}  ${tender_uaid}  ${complaintID}  ${field_name}  ${award_index}=${None}
-  allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  Run Keyword If  "переможця" in "${TEST_NAME}"  Run Keywords
+  Run keyword If  '${field_name}' == 'status' and '${ROLE}' == 'viewer'  Sleep  120
+  allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
+  Run Keyword If  "ignored" in "${TEST_NAME}"  Run Keywords
+  ...    Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/protokol")]
+  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="page-panel"]/descendant::a[contains(@href,"tender/qualification-complaints")]
+  ...  ELSE IF  "переможця" in "${TEST_NAME}"  Run Keywords
   ...    Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
-  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="bidclaims"]/descendant::a[contains(@href,"tender/qualification-complaints")]
+  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="page-panel"]/descendant::a[contains(@href,"tender/qualification-complaints")]
   ...  ELSE  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/complaints")]
   Wait Until Page Does Not Contain Element  xpath=//*[@data-test-id="items.description"]
   Wait Until Keyword Succeeds  10 x  60s  Run Keywords
@@ -761,7 +744,7 @@ Feature Count Should Not Be Zero
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
   Run Keyword If  "переможця" in "${TEST_NAME}"  Run Keywords
   ...    Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
-  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="bidclaims"]/descendant::a[contains(@href,"tender/qualification-complaints")]
+  ...    AND  Дочекатися І Клікнути  xpath=//*[@class="page-panel"]/descendant::a[contains(@href,"tender/qualification-complaints")]
   ...  ELSE  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/complaints")]
   ${value}=  allbiz.Отримати інформацію із документа  ${username}  ${tender_uaid}  ${doc_id}  ${field_name}
   [Return]  ${value}
@@ -798,25 +781,28 @@ Feature Count Should Not Be Zero
 Отримати інформацію із кваліфікації
   [Arguments]  ${username}  ${tender_uaid}  ${field_name}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  ${internal_id}=  Get Text  xpath=//div[text()="ID"]/following-sibling::div/span
-  ${index}=  Set Variable  ${field_name[15]}
-  ${bid_phone}=  get_bid_phone  ${internal_id}  ${index}
+#  ${internal_id}=  Get Text  xpath=(//*[@data-test-id="id"])[last()]
+  ${index_str}=  Set Variable  ${field_name[15]}
+  ${index_int}=  Convert To Integer  ${index_str}
+#  ${bid_phone}=  get_bid_phone  ${internal_id}  ${index}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/euprequalification")]
-  ${value}=  Get Text  xpath=//*[contains(text(),"${bid_phone}")]/ancestor::tr/descendant::*[@data-test-id="qualifications.status"]
+  ${value}=  Get Text  xpath=//*[@data-mtitle="№" and contains(text(),"${index_int + 1}")]/following-sibling::*[@data-mtitle="Статус:"]
   [Return]  ${value}
 
 Отримати інформацію із аварду
   [Arguments]  ${username}  ${tender_uaid}  ${field_name}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
+  Toggle Sidebar
   Run Keyword If  '${field_name}' == 'awards[0].documents[0].title'  Клікнути і Дочекатися Елемента  xpath=//button[contains(@id,"modal-qualification")]  xpath=//div[@class="modal-dialog "]
-  ...  ELSE IF  'suppliers' in '${field_name}'  Клікнути і Дочекатися Елемента   xpath=//button[@class="modal-open-company"]  xpath=//div[@class="modal-dialog "]
-  ...  ELSE IF  '${field_name}' == 'awards[0].complaintPeriod.endDate'  Дочекатися І Клікнути  xpath=//*[@class="bidclaims"]/descendant::a[contains(@href,"tender/qualification-complaints")]
+  ...  ELSE IF  'suppliers' in '${field_name}'  Клікнути і Дочекатися Елемента   xpath=//*[contains(@id,"btn-company-identifier")]  xpath=//div[@class="modal-dialog "]
+  ...  ELSE IF  '${field_name}' == 'awards[0].complaintPeriod.endDate'  Дочекатися І Клікнути  xpath=//*[@class="page-panel"]/descendant::a[contains(@href,"tender/qualification-complaints")]
   ${value}=  Run Keyword If  '${field_name}' == 'awards[0].documents[0].title'  Get Text  xpath=(//a[contains(@href,"docs-sandbox")])[1]
   ...  ELSE IF  'status' in '${field_name}'  Get Text  xpath=//span[contains(@data-test-id, "status")]
-  ...  ELSE IF  'amount' in '${field_name}'  Get Text  xpath=//table[contains(@class,"qualification")]/tbody/tr[1]/td[3]/b
+  ...  ELSE IF  'amount' in '${field_name}'  Get Text  xpath=//*[@data-mtitle="Пропозицiя:"]/b
+  ...  ELSE IF  'currency' in '${field_name}'  Get Text  xpath=//*[@data-mtitle="Пропозицiя:"]
   ...  ELSE IF  'value' in '${field_name}'  Get Text  xpath=//*[contains(text(), "ПДВ")]
-  ...  ELSE IF  '${field_name}' == 'awards[0].complaintPeriod.endDate'  Get Text  xpath=//*[contains(@class, "alert-info")]
+  ...  ELSE IF  '${field_name}' == 'awards[0].complaintPeriod.endDate'  Get Text  xpath=//div[contains(text(),"Завершення періоду подання вимог")]/following-sibling::div[1]
   ...  ELSE IF  'legalName' in '${field_name}'  Get Text  xpath=//*[@data-test-id="awards.suppliers.name"]
   ...  ELSE  Get Text  xpath=//*[@data-test-id="${field_name.replace("[0]","")}"]
   [Return]  ${value.split(" - ")[-1]}
@@ -824,7 +810,11 @@ Feature Count Should Not Be Zero
 Отримати статус контракта
   [Arguments]  ${username}  ${tender_uaid}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  ${status}=  Run Keyword And Return Status  Page Should Contain Element  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/protokol")]
+  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
+  ${status}=  Run Keyword And Return Status  Run Keywords
+  ...  Click Element  xpath=//button[text()="Контракт"]
+  ...  AND  Wait Element Animation  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
+  ...  AND  Page Should Contain  Договір активовано
   ${value}=  Set Variable If  ${status}  active  pending
   [Return]  ${value}
 
@@ -923,16 +913,21 @@ Feature Count Should Not Be Zero
 Завантажити документ у кваліфікацію
   [Arguments]  ${username}  ${document}  ${tender_uaid}  ${qualification_num}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  ${internal_id}=  Get Text  xpath=//div[text()="ID"]/following-sibling::div/span
-  ${bid_phone}=  get_bid_phone  ${internal_id}  ${qualification_num}
+  ${qualification_num}=  Convert To Integer  ${qualification_num}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/euprequalification")]
-  Choose File  xpath=//*[contains(text(),"${bid_phone}")]/ancestor::tr/following-sibling::tr[1]/descendant::input[@name="FileUpload[file]"]  ${document}
+  Click Element  xpath=//*[@data-mtitle="№" and contains(text(),"${qualification_num + 1}")]/../descendant::*[contains(@id,"modal-qualification-button")]
+  Wait Element Animation  xpath=//*[contains(@id,"modal-qualification") and contains(@class,"modal in")]/descendant::input[@type="file"]
+  Choose File  xpath=//*[contains(@id,"modal-qualification") and contains(@class,"modal in")]/descendant::input[@type="file"]  ${document}
 
 Завантажити документ рішення кваліфікаційної комісії
   [Arguments]  ${username}  ${document}  ${tender_uaid}  ${award_num}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
-  Choose File  xpath=(//input[@name="FileUpload[file]"])[1]  ${document}
+  Дочекатися І Клікнути  xpath=//*[contains(@id,"modal-award-qualification-button")]
+  Wait Element Animation  xpath=//select[@class="choose_prequalification"]
+  Select From List By Value  xpath=//select[@class="choose_prequalification"]  active
+  Wait Until Keyword Succeeds  10 x  400 ms  Page Should Contain Element  xpath=(//input[@type="file"])[last()]
+  Choose File  xpath=//*[@class="active"]/descendant::input[@type="file"]  ${document}
   Дочекатися І Клікнути  xpath=//input[contains(@id,"qualified")]/..
   Дочекатися І Клікнути  xpath=//input[contains(@id,"eligible")]/..
   Дочекатися І Клікнути  xpath=(//*[@name="send_prequalification"])[1]
@@ -943,18 +938,16 @@ Feature Count Should Not Be Zero
 
 Підтвердити кваліфікацію
   [Arguments]  ${username}  ${tender_uaid}  ${qualification_num}
-  allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
   ${document}=  get_upload_file_path
-  ${internal_id}=  Get Text  xpath=//div[text()="ID"]/following-sibling::div/span
-  ${bid_phone}=  get_bid_phone  ${internal_id}  ${qualification_num}
-  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/euprequalification")]
-  Дочекатися І Клікнути  xpath=//*[contains(text(),"${bid_phone}")]/ancestor::tr/following-sibling::tr[1]/descendant::input[contains(@id,"qualified")]/..
-  Дочекатися І Клікнути  xpath=//*[contains(text(),"${bid_phone}")]/ancestor::tr/following-sibling::tr[1]/descendant::input[contains(@id,"eligible")]/..
-  Choose File  xpath=//*[contains(text(),"${bid_phone}")]/ancestor::tr/following-sibling::tr[1]/descendant::input[@name="FileUpload[file]"]  ${document}
-  Дочекатися І Клікнути  xpath=(//*[contains(text(),"${bid_phone}")]/ancestor::tr/following-sibling::tr[1]/descendant::button[@name="send_prequalification"])[1]
+  ${qualification_num}=  Set Variable If  "${qualification_num}" == "-1"  1  ${qualification_num}  # Needed in cause of getting -1 for second qualifyer from Quinta`s code
+  allbiz.Завантажити документ у кваліфікацію  ${username}  ${document}  ${tender_uaid}  ${qualification_num}
+  ${qualification_num}=  Convert To Integer  ${qualification_num}
+  Дочекатися І Клікнути  xpath=//*[contains(@id,"modal-qualification") and contains(@class,"modal in")]/descendant::input[contains(@id,"qualified")]/..
+  Дочекатися І Клікнути  xpath=//*[contains(@id,"modal-qualification") and contains(@class,"modal in")]/descendant::input[contains(@id,"eligible")]/..
+  Дочекатися І Клікнути  xpath=//*[contains(@id,"modal-qualification") and contains(@class,"modal in")]/descendant::button[@name="send_prequalification"]
   Wait Until Keyword Succeeds  10 x  1 s  Run Keywords
-  ...  Click Element  xpath=(//*[@data-dismiss="modal"])[last()]
-  ...  AND  Wait Until Page Does Not Contain  Зверніть увагу  10
+  ...  Page Should Contain  Зверніть увагу
+  ...  AND  Wait Element Animation  xpath=//*[@class="modal-dialog"]/descendant::*[contains(text(),"Накласти ЕЦП")]
   Накласти ЄЦП
 
 Відхилити кваліфікацію
@@ -992,22 +985,22 @@ Feature Count Should Not Be Zero
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
   Wait Until Keyword Succeeds  5 x  0.5 s  Дочекатися І Клікнути  xpath=//button[text()="Контракт"]
   Wait Until Element Is Visible  xpath=//*[text()="Додати документ"]
-  Choose File  xpath=//a[contains(@class,"uploadcontract")]/descendant::*[@name="FileUpload[file]"]  ${document}
-  Wait Until Element Is Visible  xpath=//button[text()='Завантажити']
+  Choose File  xpath=//input[@type="file"]  ${document}
   Дочекатися І Клікнути  xpath=//button[text()='Завантажити']
-  Wait Until Keyword Succeeds  20 x  1 s  Element Should Not Be Visible  xpath=//button[text()='Завантажити']
-  Wait Until Keyword Succeeds  10 x  60 s  Run Keywords
-  ...  Reload Page
-  ...  AND  Дочекатися І Клікнути  xpath=//button[text()="Контракт"]
-  ...  AND  Input Text  xpath=//input[contains(@name,"[contractNumber]")]  777
-  ...  AND  Input Text  name=ContractPeriod[0][startDate]  01/06/2017 00:00:00
-  ...  AND  Input Text  name=ContractPeriod[0][endDate]  09/06/2017 00:00:00
-  ...  AND  Choose Ok On Next Confirmation
-  ...  AND  Дочекатися І Клікнути  xpath=//button[text()='Активувати']
-  ...  AND  Confirm Action
-  Wait Until Keyword Succeeds  10 x  60 s  Run Keywords
-  ...  Reload Page
-  ...  AND  Дочекатися І Клікнути  xpath=//button[text()="Контракт"]
+  Wait Until Keyword Succeeds  20 x  1 s  Run Keywords
+  ...  Element Should Be Visible  xpath=//button[text()="Контракт"]
+  ...  AND  Click Element  xpath=//button[text()="Контракт"]
+  Wait Element Animation  xpath=//*[contains(@name,"[dateSigned]")]
+  Input Text  xpath=//input[contains(@name,"[contractNumber]")]  777
+  Capture Page Screenshot
+  Input Text  name=ContractPeriod[0][startDate]  01/06/2018 00:00:00
+  Input Text  name=ContractPeriod[0][endDate]  09/06/2018 00:00:00
+  Sleep  60
+  Choose Ok On Next Confirmation
+  Дочекатися І Клікнути  xpath=//button[text()='Активувати']
+  Confirm Action
+  Run Keyword If  '${MODE}' != 'belowThreshold'  Run Keywords
+  ...  Wait Element Animation  xpath=//*[@class="modal-dialog"]/descendant::button[contains(text(),"Накласти ЕЦП")]
   ...  AND  Накласти ЄЦП
 
 ###############################################################################################################
@@ -1025,7 +1018,8 @@ Feature Count Should Not Be Zero
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
   Capture Page Screenshot
   ${current_url}=  Get Location
-  Execute Javascript  window['url'] = null; $.get( "${host}/seller/tender/updatebid", { id: "${current_url.split("/")[-1]}"}, function(data){ window['url'] = data.data.lotValues[0].participationUrl },'json');
+  Run Keyword If  ${NUMBER_OF_LOTS} == 0  Execute Javascript  window['url'] = null; $.get( "${host}/seller/tender/updatebid", { id: "${current_url.split("/")[-1]}"}, function(data){ window['url'] = data.data.participationUrl },'json');
+  ...  ELSE  Execute Javascript  window['url'] = null; $.get( "${host}/seller/tender/updatebid", { id: "${current_url.split("/")[-1]}"}, function(data){ window['url'] = data.data.lotValues[0].participationUrl },'json');
   Wait Until Keyword Succeeds  20 x  1 s  JQuery Ajax Should Complete
   ${auction_url}=  Execute Javascript  return window['url'];
   [Return]  ${auction_url}
@@ -1071,7 +1065,7 @@ Input Date
   Sleep  2
 
 Дочекатися посилання на аукціон
-  ${auction_url}=  Get Element Attribute  xpath=(//a[contains(@href, "auction-sandbox.openprocurement.org/")])[1]@href
+  ${auction_url}=  Get Element Attribute  xpath=(//a[contains(@href, "auction-sandbox.prozorro.openprocurement.auction/")])[1]@href
   Should Not Be Equal  ${auction_url}  javascript:void(0)
   [Return]  ${auction_url}
 
@@ -1095,24 +1089,33 @@ Scroll To Element
 
 Накласти ЄЦП
   Wait Until Page Contains  Накласти ЕЦП
-  Дочекатися І Клікнути  xpath=//*[contains(text(),"Накласти ЕЦП")]
-  Wait Until Element Is Visible  id=CAsServersSelect  60
+  Дочекатися І Клікнути  xpath=//*[@class="modal-dialog"]/descendant::*[contains(text(),"Накласти ЕЦП")]
+  Wait Until Keyword Succeeds  30 x  1 s  Page Should Contain Element  id=SignDataButton
+  Wait Until Page Does Not Contain  Зчитування ключа  30
+  Execute Javascript  $(".fade.modal.in").scrollTop(2000)
   ${status}=  Run Keyword And Return Status  Page Should Contain  Оберіть файл з особистим ключем (зазвичай з ім'ям Key-6.dat) та вкажіть пароль захисту
+  Capture Page Screenshot
   Run Keyword If  ${status}  Run Keywords
   ...  Wait And Select From List By Label  id=CAsServersSelect  Тестовий ЦСК АТ "ІІТ"
-  ...  AND  Execute Javascript  var element = document.getElementById('PKeyFileInput'); element.style.visibility="visible";
+  ...  AND  Execute Javascript  var element = document.getElementById('PKeyFileInput'); element.style.visibility="visible";  $(".fade.modal.in").scrollTop(2000)
+  ...  AND  Capture Page Screenshot
   ...  AND  Choose File  id=PKeyFileInput  ${CURDIR}/Key-6.dat
+  ...  AND  Capture Page Screenshot
   ...  AND  Input text  id=PKeyPassword  qwerty
+  ...  AND  Capture Page Screenshot
   ...  AND  Дочекатися І Клікнути  id=PKeyReadButton
+  ...  AND  Capture Page Screenshot
   ...  AND  Wait Until Page Contains  Горобець  10
+  ...  AND  Capture Page Screenshot
   Дочекатися І Клікнути  id=SignDataButton
+  Capture Page Screenshot
   Wait Until Keyword Succeeds  60 x  1 s  Page Should Not Contain Element  id=SignDataButton  120
 
 Toggle Sidebar
   ${is_sidebar_visible}=  Run Keyword And Return Status  Element Should Be Visible  xpath=//div[contains(@class,"mk-slide-panel_body")]
   Run Keyword If  ${is_sidebar_visible}  Run Keywords
-  ...  Wait Element Animation  xpath=//div[@class="title"]
-  ...  AND  Click Element  id=slidePanelToggle
+  ...  Click Element  id=slidePanelToggle
+  ...  AND  Wait Element Animation  xpath=//div[@class="title"]
 
 Wait Element Animation
   [Arguments]  ${locator}
