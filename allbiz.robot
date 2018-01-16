@@ -164,6 +164,8 @@ Input Minimal Step Amount
   ${item_id}=   Get Element Attribute  xpath=(//input[contains(@name, "Tender[items]") and contains(@name, "[quantity]")])[last()]@id
   ${index}=   Set Variable  ${item_id.split("-")[1]}
   ${dk_status}=  Run Keyword And Return Status  Dictionary Should Contain Key  ${item}  additionalClassifications
+  ${is_CPV_other}=  Run Keyword And Return Status  Should Be Equal  '${item.classification.id}'  '99999999-9'
+  ${is_MOZ}=  Run Keyword And Return Status  Should Be Equal  '${item.additionalClassifications[0].scheme}'  'INN'
   Input text  name=Tender[items][${index}][description]  ${item.description}
   Run Keyword If   '${mode}' == 'openeu'   Input text  name=Tender[items][${index}][description_en]  ${item.description_en}
   Input text  name=Tender[items][${index}][quantity]  ${item.quantity}
@@ -176,7 +178,7 @@ Input Minimal Step Amount
   Дочекатися І Клікнути  xpath=//span[contains(text(),'${item.classification.id}')]
   Дочекатися І Клікнути  id=btn-ok
   Wait Until Keyword Succeeds  10 x  1 s  Element Should Not Be Visible  xpath=//div[@class="modal-backdrop fade"]
-  Run Keyword If  ${dk_status}  Вибрати додатковий класифікатор  ${item}  ${index}
+  Run Keyword If  ${dk_status} and ${is_CPV_other} or ${is_MOZ}  Вибрати додатковий класифікатор  ${item}  ${index}  ${is_MOZ}
   Wait Until Element Is Visible  name=Tender[items][${index}][deliveryAddress][countryName]
   Wait And Select From List By Label  name=Tender[items][${index}][deliveryAddress][countryName]  ${item.deliveryAddress.countryName}
   Wait And Select From List By Label  name=Tender[items][${index}][deliveryAddress][region]  ${item.deliveryAddress.region}
@@ -187,13 +189,16 @@ Input Minimal Step Amount
   Input Date  name=Tender[items][${index}][deliveryDate][endDate]  ${item.deliveryDate.endDate}
 
 Вибрати додатковий класифікатор
-  [Arguments]  ${item}  ${index}
-  Wait And Select From List By Value  name=Tender[items][${index}][additionalClassifications][0][dkType]  ${item.additionalClassifications[0].scheme}_dk${item.additionalClassifications[0].scheme[2:]}
+  [Arguments]  ${item}  ${index}  ${is_MOZ}
+  Run Keyword If  not ${is_MOZ}  Wait And Select From List By Value  name=Tender[items][${index}][additionalClassifications][0][dkType]  ${item.additionalClassifications[0].scheme}_dk${item.additionalClassifications[0].scheme[2:]}
   Дочекатися І Клікнути  name=Tender[items][${index}][additionalClassifications][0][description]
-  Input text  id=search_code  ${item.additionalClassifications[0].id}
+  Wait Element Animation  id=search_code
+  Run Keyword If  not ${is_MOZ}  Input text  id=search_code  ${item.additionalClassifications[0].id}
+  ...  ELSE  Input text  id=search_code  ${item.additionalClassifications[1].id}
   Wait Until Page Contains  ${item.additionalClassifications[0].id}
   Дочекатися І Клікнути  xpath=//div[@id="${item.additionalClassifications[0].id}"]/div/span[contains(text(), '${item.additionalClassifications[0].id}')]
   Дочекатися І Клікнути  id=btn-ok
+  Wait Element Animation  id=btn-ok
 
 Додати нецінові критерії
   [Arguments]  ${tender_data}
