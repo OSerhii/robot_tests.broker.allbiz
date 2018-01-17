@@ -54,13 +54,15 @@ Login
   Run Keyword If  "below" in "${tender_data.data.procurementMethodType}"  Заповнити поля для допорогової закупівлі  ${tender_data}
   ...  ELSE IF  "aboveThreshold" in "${tender_data.data.procurementMethodType}"  Заповнити поля для понадпорогів  ${tender_data}
   ...  ELSE IF  "${tender_data.data.procurementMethodType}" == "negotiation"  Заповнити поля для переговорної процедури  ${tender_data}
+  ...  ELSE IF  "${tender_data.data.procurementMethodType}" == "reporting"  Wait And Select From List By Value  name=tender_method  limited_reporting
   Run Keyword If  ${number_of_lots} > 0  Wait And Select From List By Value  name=tender_type  2
+  ...  ELSE  Wait And Select From List By Value  name=tender_type  1
   Conv And Select From List By Value  name=Tender[value][valueAddedTaxIncluded]  ${tender_data.data.value.valueAddedTaxIncluded}
   Wait And Select From List By Value  name=Tender[value][currency]  ${tender_data.data.value.currency}
   Run Keyword If  ${number_of_lots} == 0  Run Keywords
   ...  ConvToStr And Input Text  name=Tender[value][amount]  ${amount}
   #...  AND  Wait And Select From List By Value  name=Tender[value][currency]  ${tender_data.data.value.currency}
-  ...  AND  Select From List By Value  id=guarantee-exist  0
+  ...  AND  Run Keyword If  "${tender_data.data.procurementMethodType}" not in "reporting negotiation"  Select From List By Value  id=guarantee-exist  0
   Input text  name=Tender[title]  ${tender_data.data.title}
   Input text  name=Tender[description]  ${tender_data.data.description}
   Run Keyword If  "${tender_data.data.procurementMethodType}" == "belowThreshold"  Run Keywords
@@ -74,6 +76,7 @@ Login
   Run Keyword If  "${SUITE_NAME}" == "Tests Files.Complaints"  Execute Javascript  $('input[name="accelerator"]').val('${custom_acceleration}')
   Get Element Attribute  xpath=//input[@name="accelerator"]@value
   Capture Page Screenshot
+  Select From List By Index  id=contact-point-select  1
   Дочекатися І Клікнути  xpath=//button[contains(@class,'btn_submit_form')]
   Wait Until Element Is Visible  xpath=//*[@data-test-id="tenderID"]  10
   ${tender_uaid}=  Get Text  xpath=//*[@data-test-id="tenderID"]
@@ -196,7 +199,8 @@ Input Minimal Step Amount
   Run Keyword If  not ${is_MOZ}  Input text  id=search_code  ${item.additionalClassifications[0].id}
   ...  ELSE  Input text  id=search_code  ${item.additionalClassifications[1].id}
   Wait Until Page Contains  ${item.additionalClassifications[0].id}
-  Дочекатися І Клікнути  xpath=//div[@id="${item.additionalClassifications[0].id}"]/div/span[contains(text(), '${item.additionalClassifications[0].id}')]
+#  Дочекатися І Клікнути  xpath=//div[@id="${item.additionalClassifications[0].id}"]/div/span[contains(text(), '${item.additionalClassifications[0].id}')]
+  Дочекатися І Клікнути  xpath=//span[contains(text(), '${item.additionalClassifications[0].id}')]
   Дочекатися І Клікнути  id=btn-ok
   Wait Element Animation  id=btn-ok
 
@@ -400,7 +404,7 @@ Feature Count Should Not Be Zero
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
   Дочекатися І Клікнути  xpath=//button[contains(@id,"modal-award-qualification")]
   Choose File  xpath=//*[@class="active"]/descendant::input[@type="file"]  ${document}
-  Дочекатися І Клікнути  xpath=(//input[contains(@id,"qualified")])[1]/..
+  RUn Keyword If  "${MODE}" == "negotiation"  Дочекатися І Клікнути  xpath=(//input[contains(@id,"qualified")])[1]/..
   Дочекатися І Клікнути  name=send_prequalification
   Накласти ЄЦП
 
@@ -797,7 +801,8 @@ Feature Count Should Not Be Zero
 Отримати інформацію із аварду
   [Arguments]  ${username}  ${tender_uaid}  ${field_name}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
+  Run Keyword If  "${MODE}" == "negotiation"  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
+  ...  ELSE  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/protokol")]
   Toggle Sidebar
   Run Keyword If  '${field_name}' == 'awards[0].documents[0].title'  Клікнути і Дочекатися Елемента  xpath=//button[contains(@id,"modal-qualification")]  xpath=//div[@class="modal-dialog "]
   ...  ELSE IF  'suppliers' in '${field_name}'  Клікнути і Дочекатися Елемента   xpath=//*[contains(@id,"btn-company-identifier")]  xpath=//div[@class="modal-dialog "]
@@ -815,12 +820,16 @@ Feature Count Should Not Be Zero
 Отримати статус контракта
   [Arguments]  ${username}  ${tender_uaid}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
+  Run Keyword If  "${MODE}" == "negotiation"  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
+  ...  ELSE  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/protokol")]
   ${status}=  Run Keyword And Return Status  Run Keywords
   ...  Click Element  xpath=//button[text()="Контракт"]
   ...  AND  Wait Element Animation  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
   ...  AND  Page Should Contain  Договір активовано
   ${value}=  Set Variable If  ${status}  active  pending
+  Click Element  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
+  Wait Element Animation  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
+  Click Element  xpath=//*[@id="slidePanel"]/descendant::*[contains(@href,"tender/view")]
   [Return]  ${value}
 
 ###############################################################################################################
@@ -996,6 +1005,7 @@ Feature Count Should Not Be Zero
   ...  Element Should Be Visible  xpath=//button[text()="Контракт"]
   ...  AND  Click Element  xpath=//button[text()="Контракт"]
   Wait Element Animation  xpath=//*[contains(@name,"[dateSigned]")]
+  Mouse Down  xpath=//*[contains(@name,"[dateSigned]")]
   Input Text  xpath=//input[contains(@name,"[contractNumber]")]  777
   Capture Page Screenshot
   Input Text  name=ContractPeriod[0][startDate]  01/06/2018 00:00:00
