@@ -78,7 +78,7 @@ Login
   Capture Page Screenshot
   Select From List By Index  id=contact-point-select  1
   Дочекатися І Клікнути  xpath=//button[contains(@class,'btn_submit_form')]
-  Wait Until Element Is Visible  xpath=//*[@data-test-id="tenderID"]  10
+  Wait Until Element Is Visible  xpath=//*[@data-test-id="tenderID"]  20
   ${tender_uaid}=  Get Text  xpath=//*[@data-test-id="tenderID"]
   [Return]  ${tender_uaid}
 
@@ -145,7 +145,7 @@ Login
 
 Input Minimal Step Amount
   [Arguments]  ${minimal_step}  ${lot_index}
-  ${minimal_step_int}=  add_second_sign_after_point  ${minimal_step}
+  ${minimalStep}=  add_second_sign_after_point  ${minimal_step}
   Input text  name=Tender[lots][${lot_index}][minimalStep][amount]  ${minimalStep}
 
 Додати багато предметів
