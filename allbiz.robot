@@ -85,10 +85,14 @@ Login
 Заповнити поля для допорогової закупівлі
   [Arguments]  ${tender_data}
   Log  ${tender_data}
+  ${is_funders}=  Run Keyword And Return Status  Dictionary Should Contain Key  ${tender_data.data}  funders
   ${minimalStep}=   add_second_sign_after_point   ${tender_data.data.minimalStep.amount}
   Wait And Select From List By Value  name=tender_method  open_${tender_data.data.procurementMethodType}
   Select From List By Value  id=tender-type-select  1
   Run Keyword If  ${number_of_lots} == 0  ConvToStr And Input Text  name=Tender[minimalStep][amount]  ${minimalStep}
+  Run Keyword If  ${is_funders}  Run Keywords
+  ...  Click Element  id=funders-checkbox
+  ...  AND  Wait And Select From List By Label  id=tender-funders  ${tender_data.data.funders[0].name}
   Input Date  name=Tender[tenderPeriod][endDate]  ${tender_data.data.tenderPeriod.endDate}
   Select From List By Index  id=contact-point-select  1
 
@@ -297,6 +301,8 @@ Get Last Feature Index
 
 Внести зміни в тендер
   [Arguments]  ${username}  ${tenderID}  ${field_name}  ${field_value}
+  ${field_value}=  Run Keyword If  "amount" in "${field_name}"  add_second_sign_after_point  ${field_value}
+  ...  ELSE  Set Variable  ${field_value}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tenderID}
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
   Run Keyword If  "Date" in "${field_name}"  Input Date  name=Tender[${field_name.replace(".", "][")}]  ${field_value}
@@ -400,7 +406,7 @@ Feature Count Should Not Be Zero
   Input Text  name=Award[suppliers][0][contactPoint][email]  ${supplier_data.data.suppliers[0].contactPoint.email}
   Input Text  name=Award[value][amount]  ${supplier_data.data.value.amount}
   Дочекатися І Клікнути  name=add_limited_avards
-  Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
+  Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]  20
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
   Дочекатися І Клікнути  xpath=//button[contains(@id,"modal-award-qualification")]
   Choose File  xpath=//*[@class="active"]/descendant::input[@type="file"]  ${document}
@@ -994,6 +1000,7 @@ Feature Count Should Not Be Zero
 
 Підтвердити підписання контракту
   [Arguments]  ${username}  ${tender_uaid}  ${contract_num}
+  Sleep  60
   ${document}=  get_upload_file_path
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
@@ -1001,16 +1008,18 @@ Feature Count Should Not Be Zero
   Wait Until Element Is Visible  xpath=//*[text()="Додати документ"]
   Choose File  xpath=//input[@type="file"]  ${document}
   Дочекатися І Клікнути  xpath=//button[text()='Завантажити']
-  Wait Until Keyword Succeeds  20 x  1 s  Run Keywords
-  ...  Element Should Be Visible  xpath=//button[text()="Контракт"]
+  Wait Until Keyword Succeeds  20 x  30 s  Run Keywords
+  ...  Reload Page
+  ...  AND  Element Should Be Visible  xpath=//button[text()="Контракт"]
   ...  AND  Click Element  xpath=//button[text()="Контракт"]
+  ...  AND  Page Should Not Contain  Файл завантажується...
   Wait Element Animation  xpath=//*[contains(@name,"[dateSigned]")]
+#  Input Text  xpath=//*[contains(@name,"[dateSigned]")]  ${dateSigned}
   Mouse Down  xpath=//*[contains(@name,"[dateSigned]")]
   Input Text  xpath=//input[contains(@name,"[contractNumber]")]  777
   Capture Page Screenshot
   Input Text  name=ContractPeriod[0][startDate]  01/06/2018 00:00:00
   Input Text  name=ContractPeriod[0][endDate]  09/06/2018 00:00:00
-  Sleep  60
   Choose Ok On Next Confirmation
   Дочекатися І Клікнути  xpath=//button[text()='Активувати']
   Confirm Action

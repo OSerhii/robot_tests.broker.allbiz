@@ -14,8 +14,8 @@ def convert_time(date):
     return timezone('Europe/Kiev').localize(date).strftime('%Y-%m-%dT%H:%M:%S.%f%z')
 
 
-def subtract_min_from_date(date, minutes):
-    date_obj = datetime.strptime(date.split("+")[0], '%Y-%m-%dT%H:%M:%S.%f')
+def subtract_min_from_date(date, minutes, template):
+    date_obj = datetime.strptime(date.split("+")[0], template)
     return "{}+{}".format(date_obj - timedelta(minutes=minutes), date.split("+")[1])
 
 
@@ -32,9 +32,11 @@ def convert_string_from_dict_allbiz(string):
         u"False": u"0",
         u"Відкриті торги": u"aboveThresholdUA",
         u"Відкриті торги з публікацією англ. мовою": u"aboveThresholdEU",
+        u"Переговорна процедура для потреб оборони": u"aboveThresholdUA.defense",
         u'Класифікацiя предмета закупівлi за ДК021:2015': u'ДК021',
         u'Код ДК (ДК003)': u'ДК003',
         u'Код ДК (ДК018)': u'ДК018',
+        u'Не відображене в інших розділах': u'Не визначено',
         u'з урахуванням ПДВ': True,
         u'без урахуванням ПДВ': False,
         u'Очiкування пропозицiй': u'active.tendering',
@@ -68,10 +70,13 @@ def adapt_procuringEntity(role_name, tender_data):
         tender_data['data']['procuringEntity']['address']['streetAddress'] = u"вул. Рогатої Худоби"
         tender_data['data']['procuringEntity']['identifier']['legalName'] = u"ТОВ Величний Свинарник"
         tender_data['data']['procuringEntity']['identifier']['id'] = u"12345677"
+        tender_data['data']['procuringEntity']['contactPoint']['name'] = u"Олександров Олександр Олександрович"
+        tender_data['data']['procuringEntity']['contactPoint']['telephone'] = u"+38(222)222-22-22"
+        tender_data['data']['procuringEntity']['contactPoint']['url'] = u"https://tenders.all.biz"
         if tender_data['data'].has_key('procurementMethodType'):
             if "above" in tender_data['data']['procurementMethodType']:
                 tender_data['data']['tenderPeriod']['startDate'] = subtract_min_from_date(
-                    tender_data['data']['tenderPeriod']['startDate'], 1)
+                    tender_data['data']['tenderPeriod']['startDate'], 1, '%Y-%m-%dT%H:%M:%S.%f')
     return tender_data
 
 
