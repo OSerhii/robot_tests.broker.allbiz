@@ -1051,15 +1051,16 @@ Feature Count Should Not Be Zero
 ###############################################################################################################
 
 ConvToStr And Input Text
-  [Arguments]  ${elem_locator}  ${smth_to_input}
+  [Arguments]  ${locator}  ${smth_to_input}
   ${smth_to_input}=  Convert To String  ${smth_to_input}
-  Input Text  ${elem_locator}  ${smth_to_input}
+  Scroll To Element  ${locator}
+  Input Text  ${locator}  ${smth_to_input}
 
 Conv And Select From List By Value
-  [Arguments]  ${elem_locator}  ${smth_to_select}
+  [Arguments]  ${locator}  ${smth_to_select}
   ${smth_to_select}=  Convert To String  ${smth_to_select}
   ${smth_to_select}=  convert_string_from_dict_allbiz  ${smth_to_select}
-  Wait And Select From List By Value  ${elem_locator}  ${smth_to_select}
+  Wait And Select From List By Value  ${locator}  ${smth_to_select}
 
 Input Date
   [Arguments]  ${elem_locator}  ${date}
@@ -1089,7 +1090,7 @@ Input Date
   Sleep  2
 
 Дочекатися посилання на аукціон
-  ${auction_url}=  Get Element Attribute  xpath=(//a[contains(@href, "auction-sandbox.prozorro.openprocurement.auction/")])[1]@href
+  ${auction_url}=  Get Element Attribute  xpath=(//a[contains(@href, "auction-sandbox.openprocurement.org/")])[1]@href
   Should Not Be Equal  ${auction_url}  javascript:void(0)
   [Return]  ${auction_url}
 
@@ -1109,7 +1110,7 @@ Scroll To Element
   [Arguments]  ${locator}
   Wait Until Page Contains Element  ${locator}  10
   ${elem_vert_pos}=  Get Vertical Position  ${locator}
-  Execute Javascript  window.scrollTo(0,${elem_vert_pos - 200});
+  Execute Javascript  window.scrollTo(0,${elem_vert_pos - 300});
 
 Накласти ЄЦП
   Wait Until Page Contains  Накласти ЕЦП
