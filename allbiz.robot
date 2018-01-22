@@ -6,7 +6,7 @@ Library  DateTime
 Library  allbiz_service.py
 
 *** Variables ***
-${custom_acceleration}=  360
+${custom_acceleration}=  180
 ${host}=  https://tenders.all.biz
 
 *** Keywords ***
