@@ -312,6 +312,8 @@ Get Last Feature Index
 
 Змінити лот
   [Arguments]  ${username}  ${tender_uaid}  ${lot_id}  ${fieldname}  ${fieldvalue}
+  ${field_value}=  Run Keyword If  "amount" in "${field_name}"  add_second_sign_after_point  ${field_value}
+  ...  ELSE  Set Variable  ${field_value}
   allbiz.Пошук тендера по ідентифікатору  ${username}  ${tender_uaid}
   Дочекатися І Клікнути  xpath=//a[contains(text(),'Редагувати')]
   Input Text  xpath=(//input[contains(@value,"${lot_id}")]/ancestor::div[@class="lots_marker"]/descendant::*[contains(@name,"${fieldname.replace(".", "][")}")])[1]  ${fieldvalue}
