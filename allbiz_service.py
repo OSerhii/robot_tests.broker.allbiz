@@ -43,6 +43,7 @@ def convert_string_from_dict_allbiz(string):
         u'Перiод уточнень': u'active.enquiries',
         u'Аукцiон': u'active.auction',
         u'Прекваліфікація': u'active.pre-qualification',
+        u'Квалiфiкацiя переможця': u'active.qualification',
         u'Оскарження прекваліфікації': u'active.pre-qualification.stand-still',
         u'вимога': u'claim',
         u'дано відповідь': u'answered',
