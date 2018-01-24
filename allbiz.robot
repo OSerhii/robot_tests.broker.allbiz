@@ -881,7 +881,7 @@ Feature Count Should Not Be Zero
 
 
 Скасувати цінову пропозицію
-  [Arguments]  ${username}  ${tender_uaid}  ${bid}
+  [Arguments]  ${username}  ${tender_uaid}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
   Execute Javascript  window.confirm = function(msg) { return true; }
   Дочекатися І Клікнути  xpath=//button[@name="delete_bids"]
