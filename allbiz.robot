@@ -834,8 +834,9 @@ Feature Count Should Not Be Zero
   ...  AND  Wait Element Animation  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
   ...  AND  Page Should Contain  Договір активовано
   ${value}=  Set Variable If  ${status}  active  pending
-  Click Element  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
-  Wait Element Animation  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
+  Run Keyword If  not ${status}  Run Keywords
+  ...  Click Element  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
+  ...  AND  Wait Element Animation  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
   Click Element  xpath=//*[@id="slidePanel"]/descendant::*[contains(@href,"tender/view")]
   [Return]  ${value}
 
