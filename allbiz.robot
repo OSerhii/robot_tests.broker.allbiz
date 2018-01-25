@@ -330,7 +330,7 @@ Get Last Feature Index
   ${doc_index}=  Set Variable  ${last_doc_name.split("][")[1]}
   Wait Until Element Is Visible  xpath=//input[@name="Tender[documents][${doc_index}][title]"]
   Input Text  xpath=//input[@name="Tender[documents][${doc_index}][title]"]  ${filepath.split("/")[-1]}
-  Select From List By Index  id=document-${doc_index}-relateditem  1
+  Select From List By Label  id=document-${doc_index}-relateditem  Поточний лот
   Click Button  xpath=//button[contains(@class,'btn_submit_form')]
   Wait Until Page Contains Element  xpath=//div[contains(@class, "alert-success")]
   Дочекатися завантаження документу
@@ -808,7 +808,8 @@ Feature Count Should Not Be Zero
 Отримати інформацію із аварду
   [Arguments]  ${username}  ${tender_uaid}  ${field_name}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  Run Keyword If  "${MODE}" != "negotiation"  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/protokol")]
+  ${is_visible}=  Run Keyword And Return Status  Element Should Be Visible  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/protokol")]
+  Run Keyword If  ${is_visible}  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/protokol")]
   ...  ELSE  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
   Toggle Sidebar
   Run Keyword If  '${field_name}' == 'awards[0].documents[0].title'  Клікнути і Дочекатися Елемента  xpath=//button[contains(@id,"modal-qualification")]  xpath=//div[@class="modal-dialog "]
@@ -827,14 +828,15 @@ Feature Count Should Not Be Zero
 Отримати статус контракта
   [Arguments]  ${username}  ${tender_uaid}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-  Run Keyword If  "${MODE}" != "negotiation"  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/protokol")]
+  ${is_visible}=  Run Keyword And Return Status  Element Should Be Visible  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/protokol")]
+  Run Keyword If  ${is_visible}  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/protokol")]
   ...  ELSE  Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/award")]
   ${status}=  Run Keyword And Return Status  Run Keywords
   ...  Click Element  xpath=//button[text()="Контракт"]
   ...  AND  Wait Element Animation  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
   ...  AND  Page Should Contain  Договір активовано
   ${value}=  Set Variable If  ${status}  active  pending
-  Run Keyword If  not ${status}  Run Keywords
+  Run Keyword If  ${status}  Run Keywords
   ...  Click Element  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
   ...  AND  Wait Element Animation  xpath=//*[contains(@id,"modal-award")]/descendant::button[@class="close"]
   Click Element  xpath=//*[@id="slidePanel"]/descendant::*[contains(@href,"tender/view")]
