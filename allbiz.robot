@@ -672,6 +672,7 @@ Feature Count Should Not Be Zero
   ...  ELSE IF  'items' in '${field_name}'  Get Text  xpath=//*[@data-test-id="${field_name.replace('[0]', '')}"]
   ...  ELSE IF  '${field_name}' == 'cause'  Get Element Attribute  xpath=//*[@data-test-id="${field_name}"]@data-test-cause
   ...  ELSE IF  '${field_name}' == 'procuringEntity.identifier.legalName'  Get Text  xpath=//*[@data-test-id="procuringEntity.name"]
+  ...  ELSE IF  '${field_name}' == 'procuringEntity.identifier.scheme'  Get Element Attribute  xpath=//*[@data-test-id="procuringEntity.identifier.scheme"]@value
   ...  ELSE IF  '${field_name}' == 'documents[0].title'  Get Text  xpath=//a[contains(@href,"docs-sandbox")]
   ...  ELSE IF  '${field_name}' == 'contracts[0].status'  Отримати статус контракта  ${username}  ${tender_uaid}
   ...  ELSE  Get Text  xpath=//*[@data-test-id="${field_name}"]
@@ -798,10 +799,8 @@ Feature Count Should Not Be Zero
 Отримати інформацію із кваліфікації
   [Arguments]  ${username}  ${tender_uaid}  ${field_name}
   allbiz.Пошук тендера по ідентифікатору   ${username}  ${tender_uaid}
-#  ${internal_id}=  Get Text  xpath=(//*[@data-test-id="id"])[last()]
   ${index_str}=  Set Variable  ${field_name[15]}
   ${index_int}=  Convert To Integer  ${index_str}
-#  ${bid_phone}=  get_bid_phone  ${internal_id}  ${index}
   Дочекатися І Клікнути  xpath=//div[@id="slidePanel"]/descendant::a[contains(@href,"tender/euprequalification")]
   ${value}=  Get Text  xpath=//*[@data-mtitle="№" and contains(text(),"${index_int + 1}")]/following-sibling::*[@data-mtitle="Статус:"]
   [Return]  ${value}
